@@ -25,6 +25,26 @@ console.log('Native WAD guards rejected malformed headers. Engine tests passed.'
 
 // Regression fixtures for three independent-review findings.
 function edited(edit){const l=base.lumps.map(x=>({...x}));edit(l);return l;}
+// Sector references must resolve inside the flat namespace, including duplicate names.
+for(const offset of [4,12]) for(const name of ['PLAYPAL','NOFLAT']) {
+  const invalid=edited(l=>{const at=l.findIndex(x=>x.name==='SECTORS'),bytes=l[at].bytes.slice();bytes.fill(0,offset,offset+8);bytes.set(new TextEncoder().encode(name),offset);l[at]={name:'SECTORS',bytes};});
+  assert.throws(()=>validateGame(invalid),/sector flat/);
+  // Bypass JS only to confirm the C boundary rejects the same invalid reference.
+  await assert.rejects(()=>engine(serializeWad(invalid)));
+}
+const shadowedFlat=edited(l=>{const sectors=l.find(x=>x.name==='SECTORS').bytes;const name=new TextDecoder().decode(sectors.subarray(4,12)).replace(/\0.*$/,'');l.push({name,bytes:new Uint8Array(4096)});});
+assert.throws(()=>validateGame(shadowedFlat),/sector flat/);
+await assert.rejects(()=>engine(serializeWad(shadowedFlat)));
+console.log('Missing, outside-namespace and shadowed sector flats rejected by JS and C.');
+// Independent revision review: every C-rendered UI patch needs column validation,
+// including empty UI images and automap/commercial level labels outside namespaces.
+for(const name of ['M_NGAME','STBAR','WILV00','AMMNUM0','CWILV00']){
+  for(const bytes of [new Uint8Array(0),new Uint8Array(13)]){
+    if(bytes.length){const v=new DataView(bytes.buffer);v.setInt16(0,1,true);v.setInt16(2,1,true);v.setUint32(8,0x7fffffff,true);bytes[12]=255;}
+    assert.throws(()=>validateGame(edited(l=>{const at=l.findIndex(x=>x.name===name);if(at<0)l.push({name,bytes});else l[at]={name,bytes};})),/truncated image|invalid image column/);
+  }
+}
+console.log('Empty and malformed automap/menu/status/intermission images rejected before WASM.');
 assert.throws(()=>validateGame(edited(l=>{const at=l.findIndex(x=>x.name==='S_START')+1;l.splice(at,0,{name:l[at].name,bytes:new Uint8Array(0)});})),/truncated image/);
 assert.throws(()=>validateGame(edited(l=>{const at=l.findIndex(x=>x.name==='S_START')+1;l.splice(at,0,{name:'F_END',bytes:new Uint8Array(0)});})),/namespace/);
 const highOffset=edited(l=>{const at=l.findIndex(x=>x.name==='BLOCKMAP');const b=new Uint8Array(65540);b.set(l[at].bytes);const v=new DataView(b.buffer);v.setUint16(8,32768,true);v.setUint16(65536,0,true);v.setUint16(65538,65535,true);l[at]={name:'BLOCKMAP',bytes:b};});

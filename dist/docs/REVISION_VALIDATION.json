@@ -1,0 +1,562 @@
+{
+  "date": "2026-10-15",
+  "scope": "Worker-run revision checks on the production export; independent review is a separate report.",
+  "commands": {
+    "typecheck": "passed",
+    "unitTests": {
+      "passed": 11,
+      "failed": 0
+    },
+    "engine": "36 maps x 50 ticks; real movement/firing/enemies/audio/exit/sprite checks; 10 image and 5 flat-reference regressions passed",
+    "build": "passed"
+  },
+  "browser": [
+    {
+      "browser": "chromium",
+      "version": "156.0.8078.4",
+      "checks": [
+        "320/390/1440 reflow and first-screen Start game",
+        "Default Freedoom fully loaded; animated engine framebuffer",
+        "Movement changes frame; firing, enemies and SFX events; non-silent OPL music",
+        "Mouse capture, turn/fire and release",
+        "Pause freezes simulation; Resume continues",
+        "Sound toggle",
+        "Enter/exit fullscreen",
+        "Restart confirmation cancel and new session",
+        "Invalid and oversized WAD rejected with recoverable error",
+        "Valid local IWAD, PWAD enable/disable/order/remove/apply, filename escaping, real exit/intermission/E1M2 transition",
+        "Touch controls visible and input handlers exercised (emulated)",
+        "Keyboard Tab escapes game surface",
+        "No page exceptions, failed resources, external requests or upload methods"
+      ],
+      "errors": [],
+      "readyAnd60TicksMs": 3395,
+      "observedSimulationHz": 35.637918745545264,
+      "musicPeak": 0.2382659912109375,
+      "sfxEvents": 20,
+      "audioStates": [
+        "running"
+      ],
+      "consoleWarnings": [
+        "Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently"
+      ],
+      "requests": [
+        {
+          "url": "./",
+          "method": "GET"
+        },
+        {
+          "url": "./app/index-fojhO85Y.js",
+          "method": "GET"
+        },
+        {
+          "url": "./app/index-Lm-Ib7mM.css",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/preview.png",
+          "method": "GET"
+        },
+        {
+          "url": "./app/silkscreen-CtPo2yA5.woff2",
+          "method": "GET"
+        },
+        {
+          "url": "./app/engine.worker-Bq-pMOC1.js",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/doom.wasm",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/music.wasm",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/freedoom1.wad.lzma",
+          "method": "GET"
+        },
+        {
+          "url": "./app/engine.worker-Bq-pMOC1.js",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/doom.wasm",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/music.wasm",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/freedoom1.wad.lzma",
+          "method": "GET"
+        },
+        {
+          "url": "./app/engine.worker-Bq-pMOC1.js",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/doom.wasm",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/music.wasm",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "browser": "firefox",
+      "version": "157.0",
+      "checks": [
+        "320/390/1440 reflow and first-screen Start game",
+        "Default Freedoom fully loaded; animated engine framebuffer",
+        "Movement changes frame; firing, enemies and SFX events; non-silent OPL music",
+        "Mouse capture, turn/fire and release",
+        "Pause freezes simulation; Resume continues",
+        "Sound toggle",
+        "Enter/exit fullscreen",
+        "Restart confirmation cancel and new session",
+        "Invalid and oversized WAD rejected with recoverable error",
+        "Valid local IWAD, PWAD enable/disable/order/remove/apply, filename escaping, real exit/intermission/E1M2 transition",
+        "Touch controls visible and input handlers exercised (emulated)",
+        "Keyboard Tab escapes game surface",
+        "No page exceptions, failed resources, external requests or upload methods"
+      ],
+      "errors": [],
+      "readyAnd60TicksMs": 4055,
+      "observedSimulationHz": 35.38351935407267,
+      "musicPeak": 0.2382659912109375,
+      "sfxEvents": 20,
+      "audioStates": [
+        "suspended"
+      ],
+      "consoleWarnings": [],
+      "requests": [
+        {
+          "url": "./",
+          "method": "GET"
+        },
+        {
+          "url": "./app/index-fojhO85Y.js",
+          "method": "GET"
+        },
+        {
+          "url": "./app/index-Lm-Ib7mM.css",
+          "method": "GET"
+        },
+        {
+          "url": "./app/silkscreen-CtPo2yA5.woff2",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/preview.png",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/favicon.svg",
+          "method": "GET"
+        },
+        {
+          "url": "./app/engine.worker-Bq-pMOC1.js",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/doom.wasm",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/music.wasm",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/freedoom1.wad.lzma",
+          "method": "GET"
+        },
+        {
+          "url": "./app/engine.worker-Bq-pMOC1.js",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/doom.wasm",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/music.wasm",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/freedoom1.wad.lzma",
+          "method": "GET"
+        },
+        {
+          "url": "./app/engine.worker-Bq-pMOC1.js",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/doom.wasm",
+          "method": "GET"
+        },
+        {
+          "url": "./assets/music.wasm",
+          "method": "GET"
+        }
+      ]
+    }
+  ],
+  "layout": [
+    {
+      "browser": "chromium",
+      "version": "156.0.8078.4",
+      "errors": [],
+      "states": [
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "fullscreen": false,
+          "scrollWidth": 390,
+          "canvas": {
+            "width": 356,
+            "height": 267
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "fullscreen": true,
+          "scrollWidth": 390,
+          "canvas": {
+            "width": 390,
+            "height": 292.5
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 320,
+            "height": 844
+          },
+          "fullscreen": false,
+          "scrollWidth": 320,
+          "canvas": {
+            "width": 286,
+            "height": 214.5
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 320,
+            "height": 844
+          },
+          "fullscreen": true,
+          "scrollWidth": 320,
+          "canvas": {
+            "width": 320,
+            "height": 240
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "fullscreen": false,
+          "scrollWidth": 1440,
+          "canvas": {
+            "width": 986,
+            "height": 739.5
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "fullscreen": true,
+          "scrollWidth": 1440,
+          "canvas": {
+            "width": 999.984375,
+            "height": 749.984375
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "fullscreen": false,
+          "scrollWidth": 844,
+          "canvas": {
+            "width": 500,
+            "height": 375
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "fullscreen": true,
+          "scrollWidth": 844,
+          "canvas": {
+            "width": 319.984375,
+            "height": 239.984375
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        }
+      ]
+    },
+    {
+      "browser": "firefox",
+      "version": "157.0",
+      "errors": [],
+      "states": [
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "fullscreen": false,
+          "scrollWidth": 390,
+          "canvas": {
+            "width": 356,
+            "height": 267
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 1366,
+            "height": 768
+          },
+          "fullscreen": true,
+          "scrollWidth": 1366,
+          "canvas": {
+            "width": 824,
+            "height": 618
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 320,
+            "height": 844
+          },
+          "fullscreen": false,
+          "scrollWidth": 320,
+          "canvas": {
+            "width": 286,
+            "height": 214.5
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 1366,
+            "height": 768
+          },
+          "fullscreen": true,
+          "scrollWidth": 1366,
+          "canvas": {
+            "width": 824,
+            "height": 618
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "fullscreen": false,
+          "scrollWidth": 1440,
+          "canvas": {
+            "width": 986,
+            "height": 739.5
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 1366,
+            "height": 768
+          },
+          "fullscreen": true,
+          "scrollWidth": 1366,
+          "canvas": {
+            "width": 824,
+            "height": 618
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "fullscreen": false,
+          "scrollWidth": 844,
+          "canvas": {
+            "width": 500,
+            "height": 375
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        },
+        {
+          "viewport": {
+            "width": 1366,
+            "height": 768
+          },
+          "fullscreen": true,
+          "scrollWidth": 1366,
+          "canvas": {
+            "width": 824,
+            "height": 618
+          },
+          "objectFit": "fill",
+          "labelPreserved": true,
+          "headerWithinBounds": true
+        }
+      ]
+    }
+  ],
+  "baseline": {
+    "chromium390ScrollWidth": 531,
+    "labelWidth": 445.828125,
+    "fullscreenObjectFit": "contain",
+    "fullscreenPaintedAspect": "16:10",
+    "readmeMissingReportLinks": 4,
+    "independentAudit": "previous report expressly incomplete"
+  },
+  "designProbe": [
+    {
+      "name": "render",
+      "passed": true,
+      "output": "renders, no script errors or missing local files"
+    },
+    {
+      "name": "layout",
+      "passed": true,
+      "output": "no horizontal scroll at 320, 390 or 1440\nno text box overlaps another\nno floating control covers text\nno text cut off by overflow: hidden"
+    },
+    {
+      "name": "targets",
+      "passed": true,
+      "output": "all 16 controls at least 24px or spaced at 390\n6 under the 44px comfortable size"
+    },
+    {
+      "name": "contrast",
+      "passed": true,
+      "output": "all measured text meets 4.5:1 (3:1 large)\n8 text boxes over images, video, canvas or gradients not measured"
+    },
+    {
+      "name": "casing",
+      "passed": true,
+      "output": "no all-caps text in content"
+    },
+    {
+      "name": "tracking",
+      "passed": true,
+      "output": "letter-spacing natural in content (display type may run tight)"
+    },
+    {
+      "name": "eyebrows",
+      "passed": true,
+      "output": "no kicker labels above headings"
+    },
+    {
+      "name": "type-sizes",
+      "passed": true,
+      "output": "390: 3 sizes in use, 5 with one-offs (13px\u00d749, 16px\u00d77, 20px\u00d76, 24px\u00d71, 48px\u00d71)\n1440: 4 sizes in use, 5 with one-offs (13px\u00d749, 16px\u00d76, 20px\u00d76, 24px\u00d73, 48px\u00d71)\nbar: 6 sizes used more than once, 8 counting one-offs, per width"
+    },
+    {
+      "name": "type-faces",
+      "passed": true,
+      "output": "families (2): arial, silkscreen\nweights (2): 400, 700"
+    },
+    {
+      "name": "glyphs",
+      "passed": true,
+      "output": "no em dashes or emoji in text"
+    },
+    {
+      "name": "slogans",
+      "passed": true,
+      "output": "2 two-beat lines; a stack is four or more, so keep the best and cut the rest:\n\"The original engine. A new way in.\" (main > div.heading-row:nth-of-type(1) > div > p)\n\"Classic rules. No jumping. Keep moving.\" (#controls > div:nth-of-type(1) > p)"
+    },
+    {
+      "name": "repetition",
+      "passed": true,
+      "output": "no repeated lines"
+    },
+    {
+      "name": "copy-budget",
+      "passed": true,
+      "output": "prose on the first screen: 22 words at 390 (bar 60), 59 at 1440 (bar 90)\nall words on the first screen: 56 at 390, 110 at 1440\nwhole page: 233 words, 133 of them prose"
+    },
+    {
+      "name": "chrome",
+      "passed": true,
+      "output": "border and shadow together: 0\ncards inside cards: 0\ngradient text: 0"
+    },
+    {
+      "name": "motion",
+      "passed": true,
+      "output": "transition: all on 0 elements\nendless animations: 0; still running with reduced motion: 0"
+    },
+    {
+      "name": "share",
+      "passed": true,
+      "output": "title \"DOOM 1993 \u00b7 Browser edition by IMD Swarm\", favicon, og:title, og:image, description"
+    }
+  ],
+  "limitations": [
+    "WebKit 27.2 page creation failed: EGL display unavailable; no WebKit gameplay pass.",
+    "Firefox headless AudioContext suspended; synthesized PCM measured, physical sound not heard.",
+    "No physical mobile, screen reader, proprietary IWAD or public deployment test.",
+    "Two initial Chromium exit checks failed due test readiness accepting preceding session; passed after new-worker synchronization.",
+    "Firefox fullscreen uses actual 1366x768 display rather than emulated phone viewport."
+  ]
+}

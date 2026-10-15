@@ -22,7 +22,7 @@ Limits: 48 MiB per base IWAD; 16 MiB per PWAD; four packs and 32 MiB of packs to
 | Music | `D_*` MUS or standard MIDI type 0/1 with PPQN timing. MIDI is converted in the worker to MUS and synthesized with the base `GENMIDI` OPL instruments. SMPTE MIDI timing, extended controllers and tracks too large for MUS are unsupported. |
 | Maps | Complete vanilla Doom binary map blocks: marker, THINGS, LINEDEFS, SIDEDEFS, VERTEXES, SEGS, SSECTORS, NODES, SECTORS, REJECT, BLOCKMAP. E1M1–E4M9 or MAP01–MAP32. |
 
-Keep replacement image dimensions within 1024×255 and texture definitions within 1024×256. Vanilla-format BSP nodes must reference earlier nodes, have depth at most 128 and valid subsectors. Build a full REJECT table and standard BLOCKMAP. Zero-size/extended/compressed nodes and partial map blocks are rejected. Engine capacity checks may stop very complex maps safely even after file validation succeeds.
+Keep replacement image dimensions within 1024×255 and texture definitions within 1024×256. Vanilla-format BSP nodes must reference earlier nodes, have depth at most 128 and valid subsectors. Build a full REJECT table and standard BLOCKMAP. Malformed/extended/compressed nodes and partial map blocks are rejected; a single-subsector map may omit BSP nodes. Engine capacity checks may stop very complex maps safely even after file validation succeeds.
 
 ## Create an enemy appearance pack
 

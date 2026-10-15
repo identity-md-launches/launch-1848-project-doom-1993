@@ -4,7 +4,7 @@
 
 This is a compact browser game for Doom players, with the viewport and Start game action taking precedence over setup and documentation. The implemented direction is dark, red-accented and deliberately pixel styled: Silkscreen titles, a real Freedoom framebuffer preview and restrained scan lines. Native form controls and plain body text keep the surrounding interface readable. `index.html` defines the patterns; `src/style.css` is their source of truth; `src/main.ts` supplies state changes.
 
-The pinned Better Interface workflow was applied across accessibility, layout, writing, typography, colors and UI, with a rendered design-critic probe and manual screenshot review. This task's explicit retro direction governs the display font and game presentation. Guidance attribution/license is retained in `artifacts/DESIGN_GUIDANCE_LICENSE.txt`. Coverage and limitations belong in `artifacts/TEST_REPORT.md`.
+The pinned Better Interface workflow was applied across accessibility, layout, writing, typography, colors and UI, with a rendered design-critic probe and manual screenshot review. This task's explicit retro direction governs the display font and game presentation. Guidance attribution/license is retained in `dist/docs/DESIGN_GUIDANCE_LICENSE.txt`. Coverage and limitations belong in `dist/docs/TEST_REPORT.md`.
 
 ## Colors
 
@@ -37,9 +37,9 @@ Shared `.masthead`, `main` and `footer` use a centered maximum width of 1320px a
 
 `.workspace` uses `minmax(0,1fr) 300px` with a 32px gap. The main game remains fluid; setup is an adjacent column. The 320×200 framebuffer is displayed at Doom's intended 4:3 screen aspect with pixelated interpolation. The launch overlay occupies that same screen. Controls and explanatory content follow the playable product.
 
-At 1100px, gutters become 24px, setup 270px and gaps 24px. At 800px, the game and setup stack; setup temporarily uses two columns. At 520px, gutters become 16px, setup becomes one column, controls use two columns and About stacks. Touch controls appear during gameplay below 800px or for a coarse pointer. The toolbar and footer wrap. The game shell has a fullscreen state with flexible screen space and retained toolbar.
+At 1100px, gutters become 24px, setup 270px and gaps 24px. At 800px, the game and setup stack; setup temporarily uses two columns. At 520px, gutters become 16px, setup becomes one column, controls use two columns and About stacks. Touch controls appear during gameplay below 800px or for a coarse pointer. The toolbar and footer wrap. The game header lets `#game-label` shrink and wrap anywhere without clipping; the session label cannot shrink, so the row grows vertically for long filenames. The fullscreen screen uses size containment and container-relative width to fit an explicit 4:3 canvas with `object-fit:fill`. Header, toolbar, hints and touch controls keep their own space outside the image; remaining space is black letterboxing.
 
-Actual 320, 390 and 1440px browser layouts were inspected/tested without horizontal overflow. At 390px, product, preview, Start game and download note appear in the first 844px viewport. Dynamic pack filenames wrap. Physical phone landscape and all intermediate widths were not exhaustively checked.
+Actual 320, 390 and 1440px browser layouts were inspected/tested without horizontal overflow. At 390px, product, preview, Start game and download note appear in the first 844px viewport. Dynamic pack and base-game filenames wrap. The revision regression loads an actual IWAD with a 61-character name and checks the full filename, header status, page width and 4:3 canvas geometry before and during fullscreen. Physical phone landscape and all intermediate widths were not exhaustively checked.
 
 ## Elevation & Depth
 

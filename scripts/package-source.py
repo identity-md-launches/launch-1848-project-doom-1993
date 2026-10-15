@@ -4,11 +4,11 @@ from pathlib import Path
 import gzip, io, tarfile
 root=Path(__file__).resolve().parent.parent
 names=['index.html','package.json','package-lock.json','tsconfig.json','vite.config.ts','README.md','DESIGN.md','LICENSE','dist/_headers','dist/source/index.html','dist/assets/share.svg']
-for directory in ['src','scripts','engine']:
+for directory in ['src','scripts','engine','dist/docs']:
     names += [str(p.relative_to(root)) for p in (root/directory).rglob('*') if p.is_file()]
 names += [str(p.relative_to(root)) for p in (root/'test').glob('*') if p.is_file()]
 # Runtime assets and the separate C source archive are retained in the static export.
-# Documentation/notices are also delivered at dist/docs, avoiding duplicate archives.
+# Include the small documentation/notices so README links also work in the download.
 buffer=io.BytesIO()
 with tarfile.open(fileobj=buffer,mode='w') as tar:
     for name in sorted(names):

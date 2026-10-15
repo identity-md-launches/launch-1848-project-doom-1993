@@ -86,7 +86,7 @@ function validatePatch(l: Lump): { width: number; height: number } {
   }
   return { width:w, height:h };
 }
-function validateMap(group: Lump[]): void {
+function validateMap(group: Lump[], flatNames: Set<string>): void {
   const name=group[0].name;
   check(group.length === 11 && mapParts.every((n,i)=>group[i+1].name===n), `${name}: incomplete vanilla map.`);
   const sizes = [0,10,14,30,4,12,4,28,26,0,0];
@@ -104,6 +104,10 @@ function validateMap(group: Lump[]): void {
     check(!(u(2,p+4)&4) || back!==65535, `${name}: two-sided line is missing its back side.`);
   }
   for(let p=0;p<group[3].bytes.length;p+=30) index(3,p+28,count[8]);
+  for(let p=0;p<group[8].bytes.length;p+=26) for(const offset of [4,12]) {
+    const flat=decoder.decode(group[8].bytes.subarray(p+offset,p+offset+8)).replace(/\0.*$/,'').toUpperCase();
+    check(flatNames.has(flat),`${name}: sector flat must resolve inside the flat namespace.`);
+  }
   for(let p=0;p<group[5].bytes.length;p+=12) {
     index(5,p,count[4]); index(5,p+2,count[4]); index(5,p+6,count[2]);
     const side=u(5,p+8); check(side<2,`${name}: invalid segment side.`);
@@ -147,17 +151,20 @@ export function validateGame(lumps: Lump[]): { mode: string; maps: string[] } {
     ranges.push([starts[0], ends[0]]);
   }
   check(ranges[0][1] < ranges[1][0] || ranges[1][1] < ranges[0][0], 'Sprite and flat namespaces overlap.');
+  // C resolves the last global occurrence of a name before subtracting firstflat.
+  const indices=new Map(lumps.map((l,i)=>[l.name,i]));
+  const flatNames=new Set([...indices].filter(([,i])=>i>ranges[1][0]&&i<ranges[1][1]).map(([name])=>name));
   const maps:string[]=[]; const patches=new Set<string>(); let section='';
   for(let i=0;i<lumps.length;i++) {
     const l=lumps[i];
-    if(mapName(l.name)) { validateMap(lumps.slice(i,i+11)); maps.push(l.name); i+=10; continue; }
+    if(mapName(l.name)) { validateMap(lumps.slice(i,i+11),flatNames); maps.push(l.name); i+=10; continue; }
     if(l.name==='S_START') { section='sprite'; continue; } if(l.name==='F_START'){section='flat';continue;}
     if(l.name==='S_END'||l.name==='F_END'){section='';continue;}
     if(marker(l.name)) continue;
     // Vanilla r_things.c accepts 29 frames: A through ] (including [, backslash, ]).
     if(section==='sprite') { check(/^[A-Z0-9]{4}[A-\]][0-8]([A-\]][0-8])?$/.test(l.name),`${l.name}: invalid sprite name.`); validatePatch(l); }
     else if(section==='flat') check(l.bytes.length===4096,`${l.name}: flats must be 64 × 64 pixels.`);
-    else if(/^(ST|WI|M_|BRDR|INTERPIC|TITLEPIC|CREDIT|HELP|VICTORY|ENDPIC|BOSSBACK|PFUB|END[0-9])/.test(l.name)) { if(l.bytes.length) patches.add(l.name); }
+    else if(/^(ST|WI|M_|AMMNUM|CWILV|BRDR|INTERPIC|TITLEPIC|CREDIT|HELP|VICTORY|ENDPIC|BOSSBACK|PFUB|END[0-9])/.test(l.name)) { patches.add(l.name); }
     if(l.name.startsWith('DS')) { const b=l.bytes; check(b.length>=8,`${l.name}: sound header is truncated.`);const v=view(b);check(v.getUint16(0,true)===3 && v.getUint16(2,true)>=4000 && v.getUint16(2,true)<=48000 && v.getUint32(4,true)<=b.length-8 && b.length<=2*1024*1024,`${l.name}: invalid DMX sound.`); }
     if(l.name.startsWith('D_')) {
       if(l.bytes[0]===77 && l.bytes[1]===84) l.bytes=midiToMus(l.bytes);

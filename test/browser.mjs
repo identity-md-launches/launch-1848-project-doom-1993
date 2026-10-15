@@ -13,6 +13,8 @@ new DataView(group[2].bytes.buffer).setUint16(834*14+6,52,true);
 const exitPack=serializeWad(group);exitPack.set(new TextEncoder().encode('PWAD'));
 const sound=base.lumps.find(l=>l.name==='DSPISTOL'),smallPack=serializeWad([{name:sound.name,bytes:sound.bytes.slice()}]);smallPack.set(new TextEncoder().encode('PWAD'));
 const results=[];
+// A dialog close event starts the next worker asynchronously. Old ticks are not readiness.
+async function restartAndWait(page){const previous=await page.evaluate(()=>window.__gameProbe.sessions);await page.getByRole('button',{name:'Restart game',exact:true}).click();await page.waitForFunction(count=>window.__gameProbe.sessions>count&&Number(document.querySelector('#canvas').dataset.ticks)>60&&document.querySelector('#launch').hidden,previous,{timeout:60000});}
 const frameHash=page=>page.locator('#canvas').evaluate(c=>{const data=c.getContext('2d').getImageData(0,0,320,200).data;let h=0;for(let i=0;i<data.length;i+=16)h=(Math.imul(h,31)+data[i])|0;return h;});
 try{
 for(const name of engines){
@@ -21,8 +23,8 @@ for(const name of engines){
   browser=await ({chromium,firefox,webkit}[name]).launch({headless:true});result.version=browser.version();
   page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',e=>failures.push(e.message));page.on('console',m=>{if(m.type()==='error')failures.push(m.text());else if(m.type()==='warning')result.consoleWarnings.push(m.text());});page.on('requestfailed',r=>failures.push(r.url()+': '+r.failure()?.errorText));page.on('request',r=>result.requests.push({url:r.url().replace(url,'./'),method:r.method()}));
   await page.addInitScript(()=>{
-    window.__gameProbe={events:[],frames:0,musicPeak:0,sfx:0};window.__audioContexts=[];const Audio=window.AudioContext;window.AudioContext=class extends Audio{constructor(...args){super(...args);window.__audioContexts.push(this);}};const Native=window.Worker;
-    window.Worker=class extends Native{constructor(...args){super(...args);this.addEventListener('message',e=>{const d=e.data;if(d.type==='event')window.__gameProbe.events.push({tag:d.tag,values:d.values});if(d.type==='frame'){window.__gameProbe.frames++;for(const n of d.sound)window.__gameProbe.musicPeak=Math.max(window.__gameProbe.musicPeak,Math.abs(n));}if(d.type==='sfx')window.__gameProbe.sfx++;});}};
+    window.__gameProbe={events:[],frames:0,musicPeak:0,sfx:0,sessions:0};window.__audioContexts=[];const Audio=window.AudioContext;window.AudioContext=class extends Audio{constructor(...args){super(...args);window.__audioContexts.push(this);}};const Native=window.Worker;
+    window.Worker=class extends Native{constructor(...args){super(...args);window.__gameProbe.sessions++;this.addEventListener('message',e=>{const d=e.data;if(d.type==='event')window.__gameProbe.events.push({tag:d.tag,values:d.values});if(d.type==='frame'){window.__gameProbe.frames++;for(const n of d.sound)window.__gameProbe.musicPeak=Math.max(window.__gameProbe.musicPeak,Math.abs(n));}if(d.type==='sfx')window.__gameProbe.sfx++;});}};
   });
   await page.goto(url);
   for(const width of [320,390,1440]){await page.setViewportSize({width,height:width===1440?1000:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);const rect=await page.locator('#play').boundingBox();assert.ok(rect.y+rect.height<844);await page.screenshot({path:`test/scratch/browser-results/${name}-${width}.png`,fullPage:true});}
@@ -37,14 +39,14 @@ for(const name of engines){
   await page.getByRole('button',{name:'Mute sound',exact:true}).click();assert.equal(await page.locator('#sound').getAttribute('aria-pressed'),'true');await page.getByRole('button',{name:'Enable sound',exact:true}).click();result.checks.push('Sound toggle');
   await page.locator('#fullscreen').click();await page.waitForTimeout(200);assert.ok(await page.evaluate(()=>document.fullscreenElement));await page.locator('#fullscreen').click();await page.waitForTimeout(100);assert.equal(await page.evaluate(()=>document.fullscreenElement),null);result.checks.push('Enter/exit fullscreen');
   await page.locator('#restart').click();assert.ok(await page.locator('#restart-dialog').isVisible());await page.getByRole('button',{name:'Keep playing'}).click();assert.equal(await page.locator('#restart-dialog').isVisible(),false);
-  await page.locator('#restart').click();await page.getByRole('button',{name:'Restart game',exact:true}).click();await page.waitForFunction(()=>Number(document.querySelector('#canvas').dataset.ticks)>60&&document.querySelector('#launch').hidden,{},{timeout:60000});result.checks.push('Restart confirmation cancel and new session');
+  await page.locator('#restart').click();await restartAndWait(page);result.checks.push('Restart confirmation cancel and new session');
   await page.locator('#base-file').setInputFiles({name:'invalid.wad',mimeType:'application/octet-stream',buffer:Buffer.from('not a wad')});await page.locator('#error').waitFor({state:'visible'});
   await page.locator('#base-file').setInputFiles({name:'large.wad',mimeType:'application/octet-stream',buffer:Buffer.alloc(48*1024*1024+1)});await page.waitForFunction(()=>document.querySelector('#error').textContent.includes('48 MiB'));result.checks.push('Invalid and oversized WAD rejected with recoverable error');
   await page.locator('#base-file').setInputFiles({name:'freedoom-local.wad',mimeType:'application/octet-stream',buffer:Buffer.from(baseBytes)});await page.waitForFunction(()=>document.querySelector('#base-name').textContent==='freedoom-local.wad');
   await page.locator('#pack-file').setInputFiles({name:'<img src=x onerror=alert(1)>.wad',mimeType:'application/octet-stream',buffer:Buffer.from(smallPack)});await page.waitForFunction(()=>document.querySelectorAll('#pack-list input[type=checkbox]').length===1);assert.equal(await page.locator('#pack-list img').count(),0);assert.equal(await page.locator('#pack-list input[type=checkbox]').count(),1);await page.locator('#pack-list input[type=checkbox]').uncheck();await page.locator('#pack-list input[type=checkbox]').check();
   await page.locator('#pack-file').setInputFiles({name:'exit-test.wad',mimeType:'application/octet-stream',buffer:Buffer.from(exitPack)});await page.waitForFunction(()=>document.querySelectorAll('#pack-list input[type=checkbox]').length===2);await page.getByRole('button',{name:'Move exit-test.wad up',exact:true}).click();assert.match(await page.locator('#pack-list .pack-name').first().textContent(),/exit-test/);
   await page.getByRole('button',{name:'Remove <img src=x onerror=alert(1)>.wad',exact:true}).click();
-  await page.locator('#apply').click();await page.getByRole('button',{name:'Restart game',exact:true}).click();await page.waitForFunction(()=>Number(document.querySelector('#canvas').dataset.ticks)>60&&document.querySelector('#launch').hidden,{},{timeout:60000});
+  await page.locator('#apply').click();await restartAndWait(page);
   await page.locator('#canvas').focus();await page.keyboard.down('w');await page.waitForTimeout(2200);await page.keyboard.up('w');
   await page.waitForFunction(()=>window.__gameProbe.events.some(e=>e.tag===102),{},{timeout:5000});
   for(let i=0;i<8;i++){await page.keyboard.press('Control',{delay:120});await page.waitForTimeout(400);}
