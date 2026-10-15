@@ -1,0 +1,525 @@
+--- a/src/g_game.c
++++ b/src/g_game.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ //-----------------------------------------------------------------------------
+ //
+ // $Id:$
+@@ -1147,6 +1150,10 @@
+ #define VERSIONSIZE 16
+ 
+ void G_DoLoadGame(void) {
++  gameaction = ga_nothing;
++  players[consoleplayer].message = "Session saving is unavailable";
++  return;
++
+   int length;
+   int i;
+   int a, b, c;
+@@ -1217,6 +1224,10 @@
+ }
+ 
+ void G_DoSaveGame(void) {
++  gameaction = ga_nothing;
++  players[consoleplayer].message = "Session saving is unavailable";
++  return;
++
+   char name[100];
+   char name2[VERSIONSIZE];
+   char *description;
+@@ -1450,6 +1461,9 @@
+ }
+ 
+ void G_DoPlayDemo(void) {
++  gameaction = ga_nothing;
++  return;
++
+   skill_t skill;
+   int i, episode, map;
+ 
+--- a/src/music/mus.c
++++ b/src/music/mus.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ // MUS (Doom music) reader and sequencer.
+ //
+ // MUS is a packed MIDI-derived format used by id Software. The lump is a
+@@ -50,7 +53,7 @@
+     return MUS_ERR_OVERFLOW;
+   }
+ 
+-  if (score_start < 0 || score_len < 0) {
++  if (score_start < table_end || score_len <= 0) {
+     return MUS_ERR_OVERFLOW;
+   }
+ 
+@@ -75,7 +78,7 @@
+   }
+ 
+   seq->data = data;
+-  seq->len = len;
++  seq->len = hdr.score_start + hdr.score_len;
+   seq->score_start = hdr.score_start;
+   seq->pos = hdr.score_start;
+   seq->delay = 0;
+@@ -91,15 +94,20 @@
+ 
+ int mus_sequencer_ended(const mus_sequencer *seq) { return seq->ended; }
+ 
++static uint8_t read_byte(mus_sequencer *seq) {
++  if (seq->pos >= seq->len) { seq->ended = 1; return 0; }
++  return seq->data[seq->pos++];
++}
+ static int read_delay(mus_sequencer *seq) {
+-  int result = 0;
+-  while (1) {
+-    uint8_t b = seq->data[seq->pos++];
++  unsigned result = 0;
++  for (int i = 0; i < 4; i++) {
++    uint8_t b = read_byte(seq);
++    if (seq->ended) return 0;
+     result = (result << 7) | (b & 0x7f);
+-    if (!(b & 0x80)) {
+-      return result;
+-    }
+-  }
++    if (!(b & 0x80)) return (int)result;
++  }
++  seq->ended = 1;
++  return 0;
+ }
+ 
+ void mus_sequencer_advance(mus_sequencer *seq, int ticks, int loop,
+@@ -107,7 +115,9 @@
+   int remaining = ticks;
+   int progress_since_last_reset = 0;
+ 
++  int budget = 65536;
+   while (remaining > 0) {
++    if (--budget <= 0) { seq->ended = 1; return; }
+     if (seq->ended) {
+       return;
+     }
+@@ -122,7 +132,7 @@
+       }
+     }
+ 
+-    uint8_t status = seq->data[seq->pos++];
++    uint8_t status = read_byte(seq);
+     int last = (status & 0x80) != 0;
+     int type = (status >> 4) & 0x07;
+     int channel = status & 0x0f;
+@@ -137,37 +147,37 @@
+     switch (type) {
+     case 0: {
+       ev.kind = MUS_EVENT_RELEASE_NOTE;
+-      ev.note = seq->data[seq->pos++] & 0x7f;
++      ev.note = read_byte(seq) & 0x7f;
+       break;
+     }
+     case 1: {
+       ev.kind = MUS_EVENT_PLAY_NOTE;
+-      uint8_t note_byte = seq->data[seq->pos++];
++      uint8_t note_byte = read_byte(seq);
+       int has_volume = (note_byte & 0x80) != 0;
+       ev.note = note_byte & 0x7f;
+-      ev.volume = has_volume ? (seq->data[seq->pos++] & 0x7f) : -1;
++      ev.volume = has_volume ? (read_byte(seq) & 0x7f) : -1;
+       break;
+     }
+     case 2: {
+       ev.kind = MUS_EVENT_PITCH_BEND;
+-      ev.value = seq->data[seq->pos++];
++      ev.value = read_byte(seq);
+       break;
+     }
+     case 3: {
+       ev.kind = MUS_EVENT_SYS_EVENT;
+-      ev.controller = seq->data[seq->pos++] & 0x7f;
++      ev.controller = read_byte(seq) & 0x7f;
+       break;
+     }
+     case 4: {
+       ev.kind = MUS_EVENT_CONTROLLER;
+-      ev.controller = seq->data[seq->pos++] & 0x7f;
+-      ev.value = seq->data[seq->pos++] & 0x7f;
++      ev.controller = read_byte(seq) & 0x7f;
++      ev.value = read_byte(seq) & 0x7f;
+       break;
+     }
+     case 6: {
+       ev.kind = MUS_EVENT_SCORE_END;
+       cb(ctx, &ev);
+-      if (loop) {
++      if (loop && progress_since_last_reset) {
+         mus_sequencer_reset(seq);
+         progress_since_last_reset = 0;
+         continue;
+@@ -182,6 +192,7 @@
+       return;
+     }
+ 
++    if (seq->ended) return;
+     cb(ctx, &ev);
+     if (last) {
+       seq->delay = read_delay(seq);
+--- a/src/p_enemy.c
++++ b/src/p_enemy.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ //-----------------------------------------------------------------------------
+ //
+ // $Id:$
+@@ -1638,6 +1641,7 @@
+     m = (mobj_t *)thinker;
+ 
+     if (m->type == MT_BOSSTARGET) {
++      if (numbraintargets >= 32) I_Error("Brain target limit exceeded");
+       braintargets[numbraintargets] = m;
+       numbraintargets++;
+     }
+@@ -1706,6 +1710,7 @@
+   }
+ 
+   // shoot a cube at current target
++  if (numbraintargets <= 0) return;
+   targ = braintargets[braintargeton];
+   braintargeton = (braintargeton + 1) % numbraintargets;
+ 
+--- a/src/p_map.c
++++ b/src/p_map.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ //-----------------------------------------------------------------------------
+ //
+ // $Id:$
+@@ -230,6 +233,7 @@
+ 
+   // if contacted a special line, add it to the list
+   if (ld->special) {
++    if (numspechit >= MAXSPECIALCROSS) I_Error("Special crossing limit exceeded");
+     spechit[numspechit] = ld;
+     numspechit++;
+   }
+--- a/src/p_maputl.c
++++ b/src/p_maputl.c
+@@ -1,3 +1,7 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
++#include "i_system.h"
+ //-----------------------------------------------------------------------------
+ //
+ // $Id:$
+@@ -418,7 +422,7 @@
+ 
+   offset = y * bmapwidth + x;
+ 
+-  offset = *(blockmap + offset);
++  offset = (unsigned short)*(blockmap + offset);
+ 
+   for (list = blockmaplump + offset; *list != -1; list++) {
+     ld = &lines[*list];
+@@ -507,6 +511,7 @@
+     return false; // stop checking
+   }
+ 
++  if (intercept_p >= intercepts + MAXINTERCEPTS) I_Error("Intercept limit exceeded");
+   intercept_p->frac = frac;
+   intercept_p->isaline = true;
+   intercept_p->d.line = ld;
+@@ -568,6 +573,7 @@
+     return true; // behind source
+   }
+ 
++  if (intercept_p >= intercepts + MAXINTERCEPTS) I_Error("Intercept limit exceeded");
+   intercept_p->frac = frac;
+   intercept_p->isaline = false;
+   intercept_p->d.thing = thing;
+--- a/src/p_spec.c
++++ b/src/p_spec.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ //-----------------------------------------------------------------------------
+ //
+ // $Id:$
+@@ -1218,6 +1221,7 @@
+     switch (lines[i].special) {
+     case 48:
+       // EFFECT FIRSTCOL SCROLL+
++      if (numlinespecials >= MAXLINEANIMS) I_Error("Animated line limit exceeded");
+       linespeciallist[numlinespecials] = &lines[i];
+       numlinespecials++;
+       break;
+--- a/src/r_bsp.c
++++ b/src/r_bsp.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ //-----------------------------------------------------------------------------
+ //
+ // $Id:$
+@@ -93,6 +96,7 @@
+       // Post is entirely visible (above start),
+       //  so insert a new clippost.
+       R_StoreWallRange(first, last);
++      if (newend >= solidsegs + MAXSEGS) I_Error("Solid segment limit exceeded");
+       next = newend;
+       newend++;
+ 
+--- a/src/r_main.c
++++ b/src/r_main.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ //-----------------------------------------------------------------------------
+ //
+ // $Id:$
+@@ -321,8 +324,12 @@
+   fixed_t temp;
+   fixed_t dist;
+ 
+-  dx = abs(x - viewx);
+-  dy = abs(y - viewy);
++  long long wide_x = (long long)x - viewx;
++  long long wide_y = (long long)y - viewy;
++  if (wide_x < 0) wide_x = -wide_x;
++  if (wide_y < 0) wide_y = -wide_y;
++  dx = wide_x > MAXINT ? MAXINT : (fixed_t)wide_x;
++  dy = wide_y > MAXINT ? MAXINT : (fixed_t)wide_y;
+ 
+   if (dy > dx) {
+     temp = dx;
+@@ -330,7 +337,11 @@
+     dy = temp;
+   }
+ 
+-  angle = (tantoangle[FixedDiv(dy, dx) >> DBITS] + ANG90) >> ANGLETOFINESHIFT;
++  if (dx == 0) return 0;
++  int slope = FixedDiv(dy, dx) >> DBITS;
++  if (slope < 0) slope = 0;
++  if (slope > SLOPERANGE) slope = SLOPERANGE;
++  angle = (tantoangle[slope] + ANG90) >> ANGLETOFINESHIFT;
+ 
+   // use as cosine
+   dist = FixedDiv(dx, finesine[angle]);
+--- a/src/r_plane.c
++++ b/src/r_plane.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ //-----------------------------------------------------------------------------
+ //
+ // $Id:$
+@@ -261,6 +264,7 @@
+   }
+ 
+   // make a new visplane
++  if (lastvisplane >= visplanes + MAXVISPLANES) I_Error("Visplane limit exceeded");
+   lastvisplane->height = pl->height;
+   lastvisplane->picnum = pl->picnum;
+   lastvisplane->lightlevel = pl->lightlevel;
+--- a/src/r_segs.c
++++ b/src/r_segs.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ //-----------------------------------------------------------------------------
+ //
+ // $Id:$
+@@ -334,7 +337,9 @@
+ // A wall segment will be drawn
+ //  between start and stop pixels (inclusive).
+ //
++extern short openings[SCREENWIDTH * 64];
+ void R_StoreWallRange(int start, int stop) {
++  if (start < 0 || stop >= SCREENWIDTH || stop < start || lastopening + 3 * (stop - start + 1) > openings + SCREENWIDTH * 64) I_Error("Wall opening limit exceeded");
+   fixed_t hyp;
+   fixed_t sineval;
+   angle_t distangle, offsetangle;
+--- a/src/w_wad.c
++++ b/src/w_wad.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ //-----------------------------------------------------------------------------
+ //
+ // $Id:$
+@@ -92,35 +95,28 @@
+   int startlump;
+   filelump_t *fileinfo;
+ 
+-  if (!base) {
+-    I_Error("W_AddMemFile: no WAD staged in memory");
+-  }
+-
+-  I_Info(" adding in-memory WAD (%i bytes)\n", wd_wad_size());
+-  startlump = numlumps;
+-
++  // IMD hardening: validate before reading, allocating or copying.
++  int wadlen = wd_wad_size();
++  if (!base || wadlen < 12 || wadlen > 96 * 1024 * 1024) I_Error("Invalid WAD size");
+   memcpy(&header, base, sizeof(header));
+-  if (strncmp(header.identification, "IWAD", 4)) {
+-    if (strncmp(header.identification, "PWAD", 4)) {
+-      I_Error("WAD buffer doesn't have IWAD or PWAD id\n");
+-    }
+-  }
+-  header.numlumps = LONG(header.numlumps);
+-  header.infotableofs = LONG(header.infotableofs);
+-  length = header.numlumps * sizeof(filelump_t);
+-  fileinfo = alloca(length);
+-  memcpy(fileinfo, base + header.infotableofs, length);
+-  numlumps += header.numlumps;
+-
+-  lumpinfo = Z_Malloc(numlumps * sizeof(lumpinfo_t), PU_STATIC, NULL);
+-
+-  lump_p = &lumpinfo[startlump];
+-
+-  for (i = startlump; i < numlumps; i++, lump_p++, fileinfo++) {
+-    lump_p->handle = WAD_HANDLE_MEM;
+-    lump_p->position = LONG(fileinfo->filepos);
+-    lump_p->size = LONG(fileinfo->size);
+-    strncpy(lump_p->name, fileinfo->name, 8);
++  if (strncmp(header.identification, "IWAD", 4) && strncmp(header.identification, "PWAD", 4))
++    I_Error("Invalid WAD signature");
++  int count = LONG(header.numlumps), offset = LONG(header.infotableofs);
++  if (count < 1 || count > 32768 || offset < 12 || offset > wadlen || count > (wadlen - offset) / 16)
++    I_Error("Invalid WAD directory");
++  if (numlumps != 0) I_Error("WAD already loaded");
++  numlumps = count;
++  lumpinfo = Z_Malloc(count * sizeof(lumpinfo_t), PU_STATIC, NULL);
++  for (i = 0; i < (unsigned)count; i++) {
++    filelump_t entry;
++    memcpy(&entry, base + offset + i * 16, 16);
++    int pos = LONG(entry.filepos), size = LONG(entry.size);
++    if (pos < 0 || size < 0 || pos > wadlen || size > wadlen - pos)
++      I_Error("WAD lump outside file");
++    lumpinfo[i].handle = WAD_HANDLE_MEM;
++    lumpinfo[i].position = pos;
++    lumpinfo[i].size = size;
++    memcpy(lumpinfo[i].name, entry.name, 8);
+   }
+ }
+ 
+@@ -214,7 +210,7 @@
+ // Returns the buffer size needed to load the given lump.
+ //
+ int W_LumpLength(int lump) {
+-  if (lump >= numlumps) {
++  if (lump < 0 || lump >= numlumps) {
+     I_Error("W_LumpLength: %i >= numlumps", lump);
+   }
+ 
+@@ -231,7 +227,7 @@
+   lumpinfo_t *l;
+   int handle;
+ 
+-  if (lump >= numlumps) {
++  if (lump < 0 || lump >= numlumps) {
+     I_Error("W_ReadLump: %i >= numlumps", lump);
+   }
+ 
+--- a/src/wasmdoom.c
++++ b/src/wasmdoom.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ #include <stddef.h>
+ #include <stdint.h>
+ 
+@@ -68,6 +71,7 @@
+ static int wd_wad_len = 0;
+ 
+ uint8_t *EXPORT(wasmdoom_wad_alloc)(int len) {
++  if (len < 12 || len > 96 * 1024 * 1024) return NULL;
+   if (wd_wad_buf) {
+     I_Error("wasmdoom_wad_alloc: WAD already staged");
+   }
+--- a/src/wd_libc.c
++++ b/src/wd_libc.c
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ // Minimal libc replacement — see wd_libc.h for rationale.
+ 
+ #include "wd_libc.h"
+@@ -196,6 +199,7 @@
+       value /= base;
+     }
+   }
++  if (precision > 32) precision = 32;
+   while (n < precision) {
+     tmp[n++] = '0';
+   }
+--- a/src/z_zone.h
++++ b/src/z_zone.h
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ //-----------------------------------------------------------------------------
+ //
+ // $Id:$
+@@ -62,7 +65,7 @@
+ #define Z_ChangeTag(p, t)                                                      \
+   {                                                                            \
+     if (((memblock_t *)((byte *)(p) - sizeof(memblock_t)))->id != 0x1d4a11)    \
+-      I_Error("Z_CT at "__FILE__                                               \
++      I_Error("Z_CT at "__FILE_NAME__                                               \
+               ":%i",                                                           \
+               __LINE__);                                                       \
+     Z_ChangeTag2(p, t);                                                        \
+--- a/build.zig
++++ b/build.zig
+@@ -1,3 +1,6 @@
++// Modified for the IMD Swarm browser edition on 2026-10-15.
++// Security hardening and build changes are documented in engine/hardening.patch
++// and artifacts/SECURITY_AUDIT.md in the accompanying site source.
+ const std = @import("std");
+ 
+ // Engine sources, everything the game wasm needs. The music synth lives in
+@@ -85,6 +88,9 @@
+     "-std=c17",
+     "-DNORMALUNIX",
+     "-DLINUX",
++    "-DRANGECHECK",
++    "-fno-strict-aliasing",
++    "-fwrapv",
+     "-Wno-everything",
+     "-include",
+     "src/wd_libc.h",
+@@ -126,6 +132,8 @@
+     });
+     exe.entry = .disabled;
+     exe.rdynamic = true;
++    exe.max_memory = 192 * 1024 * 1024;
++    exe.stack_size = 2 * 1024 * 1024;
+ 
+     b.installArtifact(exe);
+ 
+@@ -154,6 +162,7 @@
+     });
+     music_exe.entry = .disabled;
+     music_exe.rdynamic = true;
++    music_exe.max_memory = 16 * 1024 * 1024;
+ 
+     b.installArtifact(music_exe);
+ }

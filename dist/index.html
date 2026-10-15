@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="no-referrer" />
+  <title>DOOM 1993 · Browser edition by IMD Swarm</title>
+  <meta name="description" content="Play the original Doom engine in your browser with free Freedoom Phase 1 assets. Load your own WADs and resource packs locally." />
+  <meta property="og:title" content="DOOM 1993 · Back in the fight" />
+  <meta property="og:description" content="The real Doom engine. Free Freedoom assets. A browser is all you need." />
+  <meta property="og:image" content="./assets/share.png" />
+  <meta name="theme-color" content="#131313" />
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+  <script type="module" crossorigin src="./app/index-Da54KMzI.js"></script>
+  <link rel="stylesheet" crossorigin href="./app/index-BpDN-FE6.css">
+</head>
+<body>
+<a class="skip" href="#game">Skip to game</a>
+<header class="masthead">
+  <a href="#" class="brand" aria-label="IMD Swarm home"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2 2h10v10H2zm14 0h10v10H16zM2 16h10v10H2zm14 0h10v10H16z" fill="currentColor"/></svg><span>IMD <b>Swarm</b></span></a>
+  <nav aria-label="Page"><a href="#controls">Controls</a><a href="#about">About</a></nav>
+</header>
+<main>
+  <div class="heading-row"><div><h1>DOOM <span>1993</span></h1><p>The original engine. A new way in.</p></div><span class="edition">Browser edition <span aria-hidden="true">↗</span></span></div>
+  <div class="workspace">
+    <section id="game" class="game-shell" aria-label="Doom game">
+      <div class="game-top"><span id="game-label">Freedoom: Phase 1</span><span id="session-state">Ready to play</span></div>
+      <div class="screen" id="screen">
+        <canvas id="canvas" width="320" height="200" tabindex="0" aria-label="Doom game. Use W A S D to move, arrows to turn, and Control to fire. Escape releases the mouse." aria-describedby="keyboard-hint"></canvas>
+        <div id="launch" class="launch">
+          <div class="crosshair" aria-hidden="true"><span></span></div>
+          <h2 id="launch-title">Back in the fight.</h2>
+          <p id="launch-copy">Freedoom Phase 1 · All 36 levels</p>
+          <button type="button" id="play" class="primary"><span aria-hidden="true">▶</span> Start game</button>
+          <span class="launch-note" id="load-note">6.8 MiB download · Runs locally</span>
+        </div>
+      </div>
+      <div class="game-toolbar">
+        <div class="toolbar-group"><button id="pause" disabled>Pause</button><button id="restart" disabled>Restart</button></div>
+        <div class="toolbar-group"><button id="sound" aria-pressed="false">Mute sound</button><button id="fullscreen">Fullscreen <span aria-hidden="true">⤢</span></button></div>
+      </div>
+      <p class="game-hint" id="keyboard-hint">Click the game to capture the mouse. <kbd>Esc</kbd> releases it.</p>
+      <div class="touch-controls" id="touch-controls" hidden aria-label="Touch game controls">
+        <div class="dpad"><button data-key="173" class="forward" aria-label="Move forward">↑</button><button data-key="172" class="left" aria-label="Turn left">←</button><button data-key="175" class="back" aria-label="Move backward">↓</button><button data-key="174" class="right" aria-label="Turn right">→</button></div>
+        <div class="touch-actions"><button data-key="157">Fire</button><button data-key="32">Use</button><button data-key="13">Enter</button><button id="touch-weapon">Weapon</button></div>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <p id="error" class="error" role="alert" hidden></p>
+    </section>
+    <aside id="setup" class="setup" aria-label="Game setup">
+      <section><h2>Game setup</h2>
+        <label for="difficulty">Difficulty</label>
+        <select id="difficulty"><option value="1">I'm too young to die</option><option value="2">Hey, not too rough</option><option value="3" selected>Hurt me plenty</option><option value="4">Ultra-Violence</option><option value="5">Nightmare!</option></select>
+        <label for="base-file">Base game</label>
+        <div class="base-row"><span class="asset-mark" aria-hidden="true">01</span><div><strong id="base-name">Freedoom: Phase 1</strong><span id="base-detail">Free assets · Included</span></div></div>
+        <input type="file" tabindex="-1" id="base-file" accept=".wad" class="file-input" aria-describedby="base-help" />
+        <button id="choose-base" class="wide">Load your WAD <span aria-hidden="true">↑</span></button>
+        <button id="reset-base" class="text-button" hidden>Use Freedoom instead</button>
+        <p class="small" id="base-help">Your own DOOM.WAD or DOOM2.WAD. Up to 48 MiB. Files stay in this tab.</p>
+      </section>
+      <section class="packs"><div class="section-title"><h2>Resource packs</h2><span id="pack-count">0 / 4</span></div>
+        <div id="pack-list"><p class="empty">Make it your Doom.</p><p class="small">Swap sprites, textures, sounds and maps with compatible PWADs.</p></div>
+        <input type="file" tabindex="-1" id="pack-file" accept=".wad" class="file-input" aria-label="Select a PWAD resource pack" />
+        <button id="choose-pack" class="wide">Add a pack <span aria-hidden="true">+</span></button>
+        <p class="small">16 MiB per pack. Enabled packs apply on the next start; lower packs win.</p>
+        <button id="apply" class="wide" hidden>Apply changes &amp; restart</button>
+      </section>
+      <div class="local-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6zm-4 9 3 3 5-6"/></svg><p>No uploads. No accounts.<br>Just you and the game.</p></div>
+    </aside>
+  </div>
+  <section class="controls-section" id="controls"><div><h2>Know your controls</h2><p>Classic rules. No jumping. Keep moving.</p></div><div class="keys-grid"><div><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>Move &amp; strafe</span></div><div><span><kbd>←</kbd><kbd>→</kbd> / Mouse</span><span>Turn</span></div><div><span><kbd>Ctrl</kbd> / Click</span><span>Fire</span></div><div><span><kbd>E</kbd> / <kbd>Space</kbd></span><span>Open &amp; use</span></div><div><span><kbd>1</kbd> – <kbd>7</kbd></span><span>Select weapon</span></div><div><span><kbd>Shift</kbd></span><span>Run</span></div></div><details><summary>More controls &amp; session notes</summary><p><kbd>Tab</kbd> leaves the game so you can reach page controls. <kbd>M</kbd> opens the automap. <kbd>Enter</kbd> confirms game menus; arrow keys navigate. Use the Pause button before adjusting settings.</p><p>Touch controls appear on narrow screens. Rotate your device for a larger view. Restart and applying packs begin a new game. Saves and attract-mode demos are disabled in this edition; closing the tab clears the session. Gameplay includes flashing effects.</p></details></section>
+  <section id="about" class="about"><div><h2>Built on a classic.</h2><p>The real id Software Doom engine, compiled to WebAssembly. Freedoom Phase 1 supplies the freely redistributable artwork, maps and audio. Made by IMD Swarm.</p></div><div><p>Original DOOM and DOOM II assets are not included. Load only files you have the right to use. Vanilla PWADs are supported; extended engines and scripted mods are not.</p><a href="./docs/MODDING.md">Read the modding guide <span aria-hidden="true">↗</span></a></div></section>
+</main>
+<footer><span>DOOM 1993 <span aria-hidden="true">/</span> Made by IMD Swarm</span><div><a href="./docs/SECURITY_AUDIT.md">Security review</a><a href="./docs/LICENSE_REPORT.md">Licenses</a><a href="./docs/TEST_REPORT.md">Test report</a><a href="./source/index.html">Source code</a></div></footer>
+<dialog id="restart-dialog"><form method="dialog"><h2>Start a new game?</h2><p>This ends your current session and applies the selected game, difficulty and packs.</p><div class="dialog-actions"><button value="cancel">Keep playing</button><button value="restart" class="primary">Restart game</button></div></form></dialog>
+<noscript><p>JavaScript and WebAssembly are required to run the Doom engine.</p></noscript>
+</body>
+</html>

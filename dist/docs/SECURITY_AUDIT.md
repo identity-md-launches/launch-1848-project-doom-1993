@@ -1,0 +1,72 @@
+# Security audit — DOOM browser edition
+
+Date: 2026-10-15. Scope: the delivered source, compiled WebAssembly, static export, bundled assets, dependency lockfile and build/deployment configuration. This is a focused source review with executable checks, not a security certification or a claim that every legacy engine path is memory safe. No deployment was performed.
+
+## Review independence and source selection
+
+A separate security agent reviewed the upstream inputs and performed a second pass on the implementation. Its initial report is `artifacts/INITIAL_SOURCE_REVIEW.md`. Its final pass found three additional validator/engine mismatches, all repaired below, and ran final static scans. The agent's attempts to finish the written final review were interrupted by an automated tool safety rejection (“This content was flagged for possible cybersecurity risk.”). The implementation agent completed the final artifact review and regression checks. **A complete independent final sign-off was not obtained.** This limitation is not represented as a passing independent audit.
+
+The four requested repositories were downloaded from their named GitHub owners at pinned commits. API repository metadata, source archives, license files, manifests, relevant runtime/build source and commit dates were examined. Archive SHA-256 values and output hashes are in `artifacts/PROVENANCE.json`.
+
+| Repository | Reviewed commit | Last commit date in snapshot | Decision |
+| --- | --- | --- | --- |
+| [id-Software/DOOM](https://github.com/id-Software/DOOM/tree/a77dfb96cb91780ca334d0d4cfd86957558007e0) | `a77dfb96cb91780ca334d0d4cfd86957558007e0` | 2024-01-16 | Authentic named upstream location; original GPL engine, but historical native platform glue is not a browser runtime. |
+| [theMagicalKarp/wasmdoom](https://github.com/theMagicalKarp/wasmdoom/tree/dd321b50b89b5085698cfbf2ff01b2f741da8206) | `dd321b50b89b5085698cfbf2ff01b2f741da8206` | 2026-08-07 | Selected C engine and OPL music source, with local hardening and a new browser host. Small freestanding build; no WASI/libc/host imports. |
+| [cloudflare/doom-wasm](https://github.com/cloudflare/doom-wasm/tree/65e0d3ae2ffa604155eebd96ed40da6567bd08f4) | `65e0d3ae2ffa604155eebd96ed40da6567bd08f4` | 2024-09-20 | Not shipped. Larger Emscripten/SDL surface and unnecessary WebSocket multiplayer; unchecked short-frame path found. |
+| [freedoom/freedoom](https://github.com/freedoom/freedoom/tree/3ac019628d70b812ffb722f7f2365771b76a9d29) | `3ac019628d70b812ffb722f7f2365771b76a9d29` | 2026-10-02 | Source head researched. Ship complete Phase 1 from official 0.13.0 release, commit `cfb8644b1a8dc7d7d2177e6a892ccaa2922bdaae`. |
+
+All four were unarchived in inspected metadata. This verifies origin URLs and reproducibility, not signed publisher identity or the trustworthiness of every contributor. Recent activity is not proof of security. Official Freedoom release checksums were compared; its PGP signature was not verified. No unverified precompiled game binary was executed. Both shipped WASM modules were built locally from inspected corresponding source using the SHA-verified official Zig 0.16.0 toolchain. Upstream shell/install/application scripts were read, not run. Frontend packages were installed with lifecycle scripts disabled outside the repository.
+
+## Confirmed issues and remediation
+
+Severity here describes exposure to untrusted game data and availability/memory-corruption consequences. No browser sandbox escape or native remote-code execution was demonstrated.
+
+| Finding | Priority | Fix and actual verification |
+| --- | --- | --- |
+| WAD header/directory/entry ranges trusted; attacker-sized stack allocation; negative lump indices | High | `engine/hardening.patch`: length/count/range checks, bounded entry iteration, no directory `alloca`, reject negative indices. Direct WASM tests bypass JS and reject malformed headers. |
+| MUS score overread; zero-time looping freezes parser | High | Bounded score start/end, every byte/delay checked, event budget and no-progress termination. Original 17-byte fixture reproduced an ASan heap overflow; immediate-end fixture timed out. Both patched fixtures exited 0 without ASan errors. JS validator rejects both. |
+| Nested maps, patches and texture tables trusted | High | `src/wad.ts` validates complete maps, indices, BSP order/depth, REJECT/BLOCKMAP, sprite posts, flats, PNAMES/TEXTURE references, palettes and DMX audio before serialization. MIDI/MUS validation in `src/music.ts`. All 36 default maps validate and boot. This is a restricted validator, not support for all WAD dialects. |
+| Fixed engine arrays could be written beyond capacity | High | Guards before writes to solidsegs, visplanes, openings, intercepts, special-line hits, scrolling lines and boss targets; zero-target guard. `RANGECHECK` enabled. Code review and 36-map simulation passed; not every limit branch was fuzzed/exhaustively exercised. |
+| Save writer checks capacity after writing; save/demo readers unbounded | High | Save, load and demo playback actions disabled in C, including menu/attract paths. No save-file import or persistent storage in host. These features are explicitly unavailable. |
+| Local precision formatter could overrun stack temporary | High | Clamp integer precision to temporary capacity in `wd_libc.c`. Checked in source diff; not a demonstrated browser exploit. |
+| BLOCKMAP offsets accepted as unsigned by JS but sign-extended in C | High | Independent final review found mismatch. C now converts offsets to `unsigned short` before pointer arithmetic. High-offset fixture remains valid by design; generated WASM includes the repaired C source. |
+| Duplicate sprite hid malformed earlier sprite; overlapping/duplicate namespace markers | High | Independent final review found both. Validate each sprite object, require one ordered S and F pair, reject overlapping namespaces. Both crafted fixtures now rejected; regression checks retained. |
+| R_PointToDist slopetable index outside range at exact/coincident geometry | High | All-map test reproduced a WASM out-of-bounds trap on E2M1. Widen/saturate coordinate difference, handle zero distance and bound slope index. Rebuilt from source archive; all 36 maps pass. |
+| Sprite validator excluded vanilla frames 26–28 | Medium compatibility | Match the engine's full A-through-] frame range. Freedoom Phase 2 commercial-mode validation and all 32 map boots passed; regression retained. |
+| Build diagnostics embedded temporary source paths | Low | Use `__FILE_NAME__` for the zone diagnostic. Two clean source-archive rebuilds now produce byte-identical WASM; no build-directory paths retained. |
+| Restart retained hidden launch overlay; audio resume could block startup | Medium availability/UI | Reset loading overlay/tick marker; decouple audio resume from engine boot. Reproduced in browser tests and repaired; Chrome/Firefox interaction suites pass. |
+| Upstream fixed-asset LZMA writer had unbounded output | High if arbitrary archives accepted | Fixed-size 28,795,076-byte output, exact compressed/uncompressed SHA-256 checks, no user compressed uploads, removed global worker hook and string decoding. Only one known bundled stream is decoded. Worker is terminable. |
+
+The rejected Cloudflare snapshot's `src/net_websockets.c:104–116` subtracts four from packet length before a minimum-length check and leaks a discarded queued packet. This was a static finding in an unselected candidate. Historical Chocolate Doom CVE-2020-14983 was researched; the inspected snapshot has the relevant player-index guard, so it is **not** reported as affected. No advisories were invented from scanner matches.
+
+## Final boundary review
+
+- **HTML/CSS and XSS:** names, status and error strings use `textContent`/DOM creation, never HTML parsing. No eval, dynamic Function, inline scripts, string timers or URL execution from uploaded data. An HTML-looking filename was displayed without creating an image element. Fonts, favicon, preview, styles and scripts are local. CSS has no remote URLs. The real gameplay preview contains only Freedoom assets.
+- **WAD/PWAD handling:** only raw IWAD/PWAD data is accepted; no ZIP, executable, arbitrary path extraction or network URL upload. Base 48 MiB, pack 16 MiB, four packs/32 MiB total, 16,384 lumps, 80 MiB expanded/combined. Header/directory checks happen on selection; complete validation occurs on combined data in the worker before engine initialization. Maps must be complete vanilla blocks. Unsupported scripting/extended formats are rejected. Base IWAD metadata ignored by vanilla C is allowed as documented.
+- **Containment:** game and music modules have zero imports, 192 MiB and 16 MiB maximum linear memories respectively. JavaScript file/decoder buffers add memory outside these WASM limits. Native unsafe C remains unsafe within its own linear memory; WASM bounds do not provide C object safety. Checked JS memory views and bounded event payloads limit the host bridge. A dedicated worker isolates computation; startup and heartbeat deadlines terminate stalled sessions. A browser defect or trusted-site compromise remains outside that protection.
+- **Network/privacy:** only same-origin GETs for the page, built application, font, preview, worker and three engine/data resources were seen during tested flows. Worker fetch uses `credentials:'omit'`, forbids redirects and checks response sizes. Uploaded files are passed in memory, never posted or persisted. No trackers, miner loops, wallets, service worker, cookies, localStorage, remote APIs, dynamic module downloads or hidden endpoints were found in selected runtime paths. The engine's 35 Hz simulation and OPL synthesis are expected computation, not proof against all malicious code.
+- **Permissions:** only user-initiated pointer lock/fullscreen and Web Audio are used. No camera, microphone, geolocation or payment permission is requested. Tab escapes game focus; mouse capture is released through browser Escape or page controls. Hiding/blurring the page pauses and releases inputs.
+- **Policies:** HTML CSP denies by default and allows local scripts plus `wasm-unsafe-eval` (required for WASM, not general JS eval), local workers/styles/fonts/images/connections. Object, form and base injection are denied. `_headers` adds `frame-ancestors 'none'`, DENY, nosniff, referrer and permissions policies on Cloudflare. GitHub Pages/IPFS do not automatically honor `_headers`; server-header enforcement was not deployment-tested.
+- **Build/dependencies:** Vite/TypeScript/Playwright are dev-only, pinned with lockfile integrity. No runtime npm resolution, install scripts, backend, credentials or deployment command. Python engine extraction validates member paths/types; source/archive packaging uses explicit allowlists. No submodule, nested dependency/cache directory or registry archive is delivered.
+
+## Tools actually run
+
+| Check | Result and limits |
+| --- | --- |
+| Semgrep Core 1.181.0 custom C rules, initial | 143 C/H files; 59 leads (53 formatting/copy, six alloca), no process-execution match; four partial parses manually inspected. |
+| Semgrep Core final C | 143 files; 58 leads (53 formatting/copy, five alloca), same four partial parses. Remaining matches reviewed in relevant contexts; not 58 proven vulnerabilities. |
+| Semgrep JS/TS, initial | 32 files; three fetch and five localStorage inventory matches in upstream host; no dynamic-code/HTML-sink match. Upstream host not shipped. |
+| Semgrep JS/TS, final | Eight source/build JS/TS files: one expected worker fetch, zero parse errors. Two bundled JS files: worker fetch plus Vite modulepreload fallback, zero parse errors. No dynamic-code/HTML sink match. Rules delivered in `test/security-*-rules.json`. |
+| OSV public querybatch API | Four pinned commits and `lzma@2.3.2`: five empty advisory results. Coverage depends on OSV indexing. CLI not run. |
+| npm audit | Locked frontend development tree: zero vulnerabilities returned on review date. No assurance about undisclosed issues. |
+| GCC AddressSanitizer MUS harness | Two original failures reproduced, both patched cases passed. Harness `test/music-bounds.c`; broader native ASan/fuzzing not run. |
+| WASM import inspection and native engine integration | Both import tables empty; all 36 maps boot; real movement/shooting/enemies/music/exit verified. |
+| Browser network/DOM checks | Actual Chrome for Testing 156 and Firefox 157, production export at subpath; zero unexpected external/upload requests or page/resource errors in passing suite. |
+
+CodeQL, full coverage-guided fuzzing, penetration testing of a public deployment, compiler/browser source audits and a full line-by-line review of every historical game function were not performed. See `TEST_REPORT.md` for exact executed commands and browser limitations.
+
+## Remaining risk and release boundary
+
+All confirmed High issues listed here were repaired or their feature was disabled before delivery; no confirmed Critical finding was established. This does not mean the remaining legacy engine is proven free of High vulnerabilities. Malformed/complex local assets may still trigger engine diagnostics, traps, resource exhaustion or unsupported-behavior failures. Prefer trusted vanilla packs; the page recovers by terminating the worker. Some otherwise valid extended or unusual IWAD/PWADs are intentionally rejected. Proprietary DOOM/DOOM II IWAD gameplay was not tested because those assets were not supplied.
+
+The full default data and executable source are included. Hashes bind reviewed inputs/outputs, not a compromised hosting origin. Browser security updates and HTTPS are required operational controls. An owner who requires a fully independent final security sign-off should obtain it before public deployment; this static deliverable does not claim that unavailable sign-off.
